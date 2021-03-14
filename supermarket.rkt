@@ -49,6 +49,10 @@
 ; - tt-ul acesteia
 ; Obs: când mai multe case au același tt, este preferată casa cu indexul cel mai mic
 
+;Pentru a tine minte in fiecare moment valoarea minima a lui tt si indexul corespunzator
+;am creat o functie ajutatoare care tine minte si acesti doi parametri. Indexul l-am
+;initializat cu -1, iar minimul cu o valoare cat mai mare.
+
 (define (min-tt counters)
   (min-tt-helper -1 999999999 counters))
 
@@ -67,16 +71,9 @@
 ; la sfârșitul cozii de așteptare.
 
 (define (add-to-counter C name n-items)
-  (struct-copy counter C [queue (app (counter-queue C) (list (cons name n-items)))]
+  (struct-copy counter C [queue (append (counter-queue C) (list (cons name n-items)))]
                          [tt (+ (counter-tt C) n-items)]))
-  
-(define (app A B)
-  (app-iter B (reverse A)))
 
-(define (app-iter B Result)
-  (if (null? B)
-      (reverse Result)
-      (app-iter (cdr B) (cons (car B) Result))))
 
 ; TODO
 ; Implementați funcția care simulează fluxul clienților pe la case.
@@ -93,14 +90,15 @@
   ; - avantaj: aveți acces la variabilele requests, C1, C2, C3, C4 fără a le retrimite ca parametri
   ; puteți de asemenea să vă definiți funcțiile ajutătoare în exteriorul lui "serve"
   ; - avantaj: puteți să vă testați fiecare funcție imediat ce ați implementat-o
+  
+  (define counters (list C1 C2 C3 C4))
 
+  ; Functie care returneaza casa corespunzatoare in functie de indexul acesteia
   (define (get-counter index) (cond
                                 [(equal? index 1) C1]
                                 [(equal? index 2) C2]
                                 [(equal? index 3) C3]
                                 [(equal? index 4) C4]))
-  
-  (define counters (list C1 C2 C3 C4))
   
   (if (null? requests)
       (list C1 C2 C3 C4)
@@ -119,7 +117,3 @@
            [(equal? (car (min-tt (list C2 C3 C4))) 3) (serve (cdr requests) C1 C2 (add-to-counter C3 name n-items) C4)]
            [else (equal? (car (min-tt (list C2 C3 C4))) 4) (serve (cdr requests) C1 C2 C3 (add-to-counter C4 name n-items))]
         )])))
-
-
-
-
