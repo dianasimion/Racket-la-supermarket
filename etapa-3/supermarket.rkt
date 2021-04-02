@@ -1,7 +1,7 @@
 #lang racket
 (require racket/match)
 (require "queue.rkt")
- (require racket/trace)	
+(require racket/trace)	
 
 (provide (all-defined-out))
 
@@ -37,11 +37,6 @@
 (define (empty-counter index)           ; testată de checker
   (make-counter index 0 0 empty-queue))
 
-(define C1 (empty-counter 1))
-(define C2 (empty-counter 2))
-(define C3 (empty-counter 3))
-(define C4 (empty-counter 4))
-(define C5 (make-counter 5 12 8 (queue '((remus . 6) (vivi . 4)) '() 2 0)))
 
 (define (update f counters index)
   (map (λ (x) (if (equal? (counter-index x) index) (f x) x))
@@ -73,14 +68,14 @@
 (define (add-to-counter name items)     ; testată de checker
   (λ (C)                                ; nu modificați felul în care funcția își primește argumentele
     (match C
-        [(counter index tt et queue)
-         (struct-copy counter C
-                      [tt (+ tt items)]
-                      [et (if (queue-empty? queue)
-                              (+ et items)
-                              et)]
-                      [queue (enqueue (cons name items) queue)])]
-        )))
+      [(counter index tt et queue)
+       (struct-copy counter C
+                    [tt (+ tt items)]
+                    [et (if (queue-empty? queue)
+                            (+ et items)
+                            et)]
+                    [queue (enqueue (cons name items) queue)])]
+      )))
 
 
 (define (min-helper min-index min-value counters f)
@@ -104,13 +99,13 @@
   (if (<= (+ (queue-size-l (counter-queue C)) (queue-size-r (counter-queue C))) 1)
       
       (struct-copy counter C [tt 0]
-                             [et 0]
-                             [queue empty-queue])
+                   [et 0]
+                   [queue empty-queue])
       
       (struct-copy counter C [tt (- (counter-tt C) (counter-et C))]
-                             [et (cdr (top (dequeue (counter-queue C))))]
-                             [queue (dequeue (counter-queue C))]
-      )))
+                   [et (cdr (top (dequeue (counter-queue C))))]
+                   [queue (dequeue (counter-queue C))]
+                   )))
 
 
 ; TODO
@@ -124,9 +119,8 @@
   (λ (C)
     (match C [(counter index tt et queue)
               (struct-copy counter C [tt (if (< minutes tt) (- tt minutes) 0)]
-                                     [et (if (< minutes et) (- et minutes) 0)])]
+                           [et (if (< minutes et) (- et minutes) 0)])]
       )))
-
 
 
 ; TODO
@@ -159,11 +153,14 @@
 ; Obs: Pentru a contoriza ieșirile din cozi, puteți să lucrați într-o funcție ajutătoare
 ; (cu un parametru în plus față de funcția serve), pe care serve doar o apelează.
 
+; Functie care returneaza daca un element se afla intr-o lista
 (define (member? x list)
   (if (null? list) #f                               
       (if (equal? x (car list)) #t                  
           (member? x (cdr list)))))                 
-        
+
+
+; Functie care intarzie o casa C cu minutes
 (define (delay C minutes)
   (match C
     [(counter index tt et queue)
@@ -171,42 +168,58 @@
                   [tt (+ (counter-tt C) minutes)]
                   [et (+ (counter-et C) minutes)])]))
 
+
+; Functie care adauga case noi pana la atingerea unei anumite medii
 (define (add-slow-counters average slow-counters fast-counters)
-   (let* ((num-counters (length (append fast-counters slow-counters)))
-          (avg_actual (/ (apply + (map (λ (C) (counter-tt C))
-                                  (append fast-counters slow-counters))) num-counters)))
+  (let* ((num-counters (length (append fast-counters slow-counters)))
+         (avg_actual (/ (apply + (map (λ (C) (counter-tt C))
+                                      (append fast-counters slow-counters))) num-counters)))
      
-     (if (<= avg_actual average)
-         slow-counters
-         (add-slow-counters average (append slow-counters (list (empty-counter (+ 1 num-counters)))) fast-counters)
-     )
-   )
-)
-
-
-(define (helper fast-counters slow-counters crono-list x)
-  (if (zero? x)
-      (list fast-counters slow-counters crono-list)
-      (let ([minet (min-et (append slow-counters fast-counters))])
-        (helper (map (lambda (C)
-                       
-                       (if (and (= (counter-index C) (car minet)) (= (counter-et C) 1))
-                           (remove-first-from-counter C)
-                           ((pass-time-through-counter 1) C))
-                       ) fast-counters)
-                
-                (map (lambda (C)
-                       
-                       (if (and (= (counter-index C) (car minet)) (= (counter-et C) 1))
-                           ((pass-time-through-counter 1) (remove-first-from-counter C))
-                           ((pass-time-through-counter 1) C))
-                       ) slow-counters)
-
-                 crono-list (sub1 x)
-                )
+    (if (<= avg_actual average)
+        slow-counters
+        (add-slow-counters average (append slow-counters (list (empty-counter (+ 1 num-counters)))) fast-counters)
         )
+    )
   )
-)
+
+
+; Functie care "trece timpul" printr-o casa si scoate clientii corespunzatori
+(define (pass-time-remove x)
+  (λ (C)
+    (let it ([x x] [C C])
+      (if (= x 0)
+          C
+          (it (sub1 x) (if (= (counter-et C) 1)
+                           (remove-first-from-counter C)
+                           ((pass-time-through-counter 1) C)
+                        )
+          )
+        )
+      )
+    )
+  )
+
+
+; Functie care returneaza o lista cu clientii care ies de la o anumita casa
+(define removed-clients
+  (lambda (C)
+    (if (and (= (counter-et C) 1) (not (queue-empty? (counter-queue C))))
+        (list (cons (counter-index C) (car (top (counter-queue C)))))
+        '())
+    )
+  )
+
+
+; Functie care adauga intr-o lista clientii care au iesit de la case dupa un numar de minute
+(define (dequeue-clients counters x)
+ (let it ([x x] [counters counters])
+   (if (= x 0)
+       '()
+       (append (foldr append '()
+                      (map removed-clients counters)) (it (sub1 x) (map (pass-time-remove 1) counters)))
+    )
+   )
+  )
 
 
 (define (serve requests fast-counters slow-counters)
@@ -221,7 +234,7 @@
         
         [(list 'ensure average)
          (serve-helper (cdr requests) fast-counters (add-slow-counters average slow-counters fast-counters) crono-list)
-        ]
+         ]
         
         [(list name n-items)
          (define mintt_idx (car (min-tt (append fast-counters slow-counters))))
@@ -229,7 +242,7 @@
          (if (and (<= n-items ITEMS) (member? mintt_idx (map (λ (C) (counter-index C)) fast-counters)))
              (serve-helper (cdr requests) (update (add-to-counter name n-items) fast-counters mintt_idx) slow-counters crono-list)
              (serve-helper (cdr requests) fast-counters (update (add-to-counter name n-items) slow-counters (car (min-tt slow-counters))) crono-list)
-         )]
+             )]
 
         [(list 'delay index minutes)
          (if (member? index (map (λ (C) (counter-index C)) fast-counters))
@@ -237,7 +250,8 @@
              (serve-helper (cdr requests) fast-counters (update (λ (C) (delay C minutes)) slow-counters index) crono-list))]
         
         [ x
-         (let ([result (helper fast-counters slow-counters crono-list x)])
-           (serve-helper (cdr requests) (car result) (cadr result) (caddr result)))]
-       )))
-
+          (define counters (append fast-counters slow-counters))
+          (serve-helper (cdr requests) (map (pass-time-remove x) fast-counters)
+                        (map (pass-time-remove x) slow-counters)
+                        (append crono-list (dequeue-clients (append fast-counters slow-counters) x)))]
+        )))
