@@ -70,27 +70,46 @@
 ; TODO
 ; Definiți valoarea care reprezintă o structură queue goală.
 (define empty-queue
-  'your-code-here)
+  (make-queue empty-stream '() 0 0))
 
 
 ; TODO
 ; Implementați o funcție care verifică dacă o coadă este goală.
 (define (queue-empty? q)
-  'your-code-here)
+  (and (stream-empty? (queue-left q)) (null? (queue-right q))))
 
 
 ; TODO
 ; Implementați funcția rotate, conform axiomelor de mai sus.
 ; Atenție: ce tip trebuie să aibă Acc?
 (define (rotate left right Acc)
-  'your-code-here)
+  (if (stream-empty? left)
+      (stream-cons (car right) Acc)
+      (stream-cons (stream-first left)
+                   (rotate (stream-rest left) (cdr right) (stream-cons (car right) Acc)))
+   )
+ )
+
 
 ; TODO
 ; Implementați o funcție care adaugă un element la sfârșitul unei cozi.
 ; Veți întoarce coada actualizată.
 ; Atenție: în urma adăugării unui element, poate fi necesară o rotație!
 (define (enqueue x q)
-  'your-code-here)
+  (match q [(queue left right size-l size-r)
+            (if (>= size-l (add1 size-r))
+                (queue left (cons x right) size-l (add1 size-r))
+                (queue (rotate left (cons x right) empty-stream) null (add1 (+ size-l size-r)) 0)
+            )
+           ]
+    )
+  )
+
+
+(define (list->stream l)
+  (if (null? l)
+      empty-stream
+      (stream-cons (car l) (list->stream (cdr l)))))
 
 
 ; TODO
@@ -99,7 +118,14 @@
 ; Veți întoarce coada actualizată.
 ; Atenție: în urma înlăturării unui element, poate fi necesară o rotație!
 (define (dequeue q)
-  'your-code-here)
+  (match q [(queue left right size-l size-r)
+            (if (>= (sub1 size-l) size-r)
+                (queue (stream-rest left) right (sub1 size-l) size-r)
+                (queue (rotate (stream-rest left) right empty-stream) null (sub1 (+ size-l size-r)) 0)
+            )
+           ]
+    )
+  )
 
 
 ; TODO
@@ -107,4 +133,4 @@
 ; (nu verificați că e nevidă, pe coada vidă este firesc să dea eroare).
 ; Veți întoarce elementul aflat la începutul cozii.
 (define (top q)
-  'your-code-here)
+  (stream-first (queue-left q)))
