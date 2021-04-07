@@ -109,10 +109,10 @@
 
 ; Functie care adauga case noi pana la atingerea unei anumite medii
 (define (add-slow-counters average slow-counters fast-counters)
-  (let* ((num-counters (length (filter (lambda (C) (zero? (counter-closed C)))
+  (let* ((num-counters (length (filter (λ (C) (zero? (counter-closed C)))
                                        (append fast-counters slow-counters))))
          (avg_actual (/ (apply + (map (λ (C) (counter-tt C))
-                                      (filter (lambda (C) (zero? (counter-closed C)))
+                                      (filter (λ (C) (zero? (counter-closed C)))
                                               (append fast-counters slow-counters)))) num-counters))
          (num-total (length (append fast-counters slow-counters))))
      
@@ -143,7 +143,7 @@
 
 ; Functie care returneaza o lista cu clientii care ies de la o anumita casa
 (define removed-clients
-  (lambda (C)
+  (λ (C)
     (if (and (= (counter-et C) 1) (not (queue-empty? (counter-queue C))))
         (list (cons (counter-index C) (car (top (counter-queue C)))))
         '())
@@ -208,14 +208,14 @@
 (define (serve-helper requests fast-counters slow-counters crono-list)
   (if (null? requests)
       
-      (cons crono-list (map (lambda (C) (cons (counter-index C) (counter-queue C)))
-                            (filter (lambda (C) (not (queue-empty? (counter-queue C))))
+      (cons crono-list (map (λ (C) (cons (counter-index C) (counter-queue C)))
+                            (filter (λ (C) (not (queue-empty? (counter-queue C))))
                                     (append fast-counters slow-counters))))
       
       (match (car requests)
         [(list 'close index)
-         (serve-helper (cdr requests) (update (lambda (C) (close-counter C)) fast-counters index)
-                       (update (lambda (C) (close-counter C)) slow-counters index) crono-list)]
+         (serve-helper (cdr requests) (update (λ (C) (close-counter C)) fast-counters index)
+                       (update (λ (C) (close-counter C)) slow-counters index) crono-list)]
 
         
         [(list 'ensure average)
@@ -223,8 +223,8 @@
 
         
         [(list name n-items)
-         (define mintt_idx (car (min-tt (filter (lambda (C) (zero? (counter-closed C))) (append fast-counters slow-counters)))))
-         (define mintt_idx_slow (car (min-tt (filter (lambda (C) (zero? (counter-closed C))) slow-counters))))
+         (define mintt_idx (car (min-tt (filter (λ (C) (zero? (counter-closed C))) (append fast-counters slow-counters)))))
+         (define mintt_idx_slow (car (min-tt (filter (λ (C) (zero? (counter-closed C))) slow-counters))))
          
          (if (and (<= n-items ITEMS) (member? mintt_idx (map (λ (C) (counter-index C)) fast-counters)))
              (serve-helper (cdr requests) (update (add-to-counter name n-items) fast-counters mintt_idx) slow-counters crono-list)
